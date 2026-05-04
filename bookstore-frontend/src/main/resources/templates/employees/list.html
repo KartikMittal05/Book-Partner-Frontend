@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${pageTitle}">Employees</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
+    <style>
+        body { background: #f1f5f9; }
+        .page-hero {
+            background: linear-gradient(135deg, #2d1b4e 0%, #4a1580 60%, #993556 100%);
+            color: white; padding: 36px 0 32px;
+        }
+        .table-card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); overflow: hidden; }
+        .table thead th { background: #f8fafc; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #64748b; border-bottom: 2px solid #e2e8f0; padding: 14px 16px; }
+        .table tbody td { padding: 14px 16px; vertical-align: middle; font-size: 14px; }
+        .table tbody tr { transition: background 0.15s; }
+        .table tbody tr:hover { background: #fdf6f9; }
+        .mono { font-family: 'Courier New', monospace; font-size: 13px; color: #475569; }
+        .search-box { position: relative; }
+        .search-box .bi-search { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+        .search-box input { padding-left: 36px; border-radius: 8px; border: 1.5px solid #e2e8f0; transition: border-color .2s; }
+        .search-box input:focus { border-color: #993556; box-shadow: 0 0 0 3px rgba(153,53,86,0.1); }
+        .empty-state { padding: 60px 20px; text-align: center; color: #94a3b8; }
+        .empty-state i { font-size: 48px; display: block; margin-bottom: 12px; }
+        .btn-spinner { display: none; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; margin-left: 6px; }
+        .btn.loading .btn-spinner { display: inline-block; }
+        .btn.loading .btn-text { opacity: 0.7; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #tableSection { transition: opacity 0.2s; }
+        #tableSection.loading { opacity: 0.45; pointer-events: none; }
+        .page-link { border-radius: 6px !important; margin: 0 2px; }
+        .page-item.active .page-link { background: #993556; border-color: #993556; }
+        .modal-header { background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; }
+        .form-label { font-size: 13px; font-weight: 600; color: #374151; }
+        .form-control:focus, .form-select:focus { border-color: #993556; box-shadow: 0 0 0 3px rgba(153,53,86,0.1); }
+        .required-star { color: #ef4444; }
+        .field-error { display: none; font-size: 12px; color: #ef4444; margin-top: 4px; }
+        .field-error.show { display: block; }
+        .form-control.invalid { border-color: #ef4444; }
+        .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 9999; }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{fragments/navbar :: navbar}" th:with="activePage='employees'"></div>
+
+<!-- Page Hero -->
+<div class="page-hero">
+    <div class="container-fluid px-4">
+        <nav aria-label="breadcrumb" class="mb-2">
+            <ol class="breadcrumb mb-0" style="--bs-breadcrumb-divider-color:rgba(255,255,255,.4)">
+                <li class="breadcrumb-item"><a th:href="@{/}" class="text-white-50 text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item active text-white">Employees</li>
+            </ol>
+        </nav>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+                <h1 class="h3 fw-bold mb-1">Employees</h1>
+                <p class="mb-0 text-white-50 small">Manage employee records — Swati's Module</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a th:href="@{/}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Back
+                </a>
+                <button class="btn btn-warning btn-sm fw-semibold" onclick="openCreateModal()">
+                    <i class="bi bi-plus-lg me-1"></i>New Employee
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-4 py-4">
+
+    <!-- Controls Row -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width:420px">
+            <div class="search-box flex-grow-1">
+                <i class="bi bi-search"></i>
+                <input type="text" class="form-control form-control-sm"
+                       id="searchInput"
+                       placeholder="Search by ID, name, publisher…"
+                       th:value="${search}"
+                       oninput="handleSearch(this.value)"
+                       autocomplete="off"/>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm"
+                    id="searchClearBtn"
+                    th:style="${search != null and !search.isEmpty()} ? 'display:inline-flex' : 'display:none'"
+                    style="display:none"
+                    onclick="clearSearch()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <span class="text-muted small" th:if="${pageMeta != null}">
+            <i class="bi bi-person-badge me-1"></i>
+            <strong th:text="${pageMeta.totalElements}">0</strong> employees total
+        </span>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card" id="tableSection">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Emp ID</th>
+                        <th>First Name</th>
+                        <th>M</th>
+                        <th>Last Name</th>
+                        <th>Job ID</th>
+                        <th>Level</th>
+                        <th>Pub ID</th>
+                        <th>Hire Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="employeeTableBody">
+                    <tr th:if="${employees == null or employees.isEmpty()}">
+                        <td colspan="9">
+                            <div class="empty-state">
+                                <i class="bi bi-person-badge"></i>
+                                <p class="fw-semibold mb-1">No employees found</p>
+                                <span class="small" th:if="${search != null and !search.isEmpty()}">Try a different search term</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:each="emp : ${employees}" th:if="${employees != null and !employees.isEmpty()}">
+                        <td class="mono" th:text="${emp.empId}"></td>
+                        <td th:text="${emp.fname}"></td>
+                        <td class="text-muted small" th:text="${emp.minit ?: ''}"></td>
+                        <td><strong th:text="${emp.lname}"></strong></td>
+                        <td class="mono" th:text="${emp.jobId ?: '—'}"></td>
+                        <td th:text="${emp.jobLvl ?: '—'}"></td>
+                        <td class="mono" th:text="${emp.pubId ?: '—'}"></td>
+                        <td class="mono small" th:text="${emp.hireDateFormatted}"></td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a th:href="@{/employees/{id}(id=${emp.empId})}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-eye me-1"></i>View
+                                </a>
+                                <button class="btn btn-outline-warning btn-sm"
+                                        th:attr="data-empid=${emp.empId},
+                                                 data-fname=${emp.fname},
+                                                 data-minit=${emp.minit},
+                                                 data-lname=${emp.lname},
+                                                 data-jobid=${emp.jobId},
+                                                 data-joblvl=${emp.jobLvl},
+                                                 data-pubid=${emp.pubId},
+                                                 data-hiredate=${emp.hireDateTimeForInput}"
+                                        onclick="handleEditClick(this)">
+                                    <i class="bi bi-pencil me-1"></i>Edit
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex align-items-center justify-content-between px-3 py-3 border-top"
+             id="paginationRow"
+             th:if="${pageMeta != null and pageMeta.totalPages > 1 and (search == null or search.isEmpty())}">
+            <small class="text-muted">
+                Page <strong th:text="${currentPage + 1}">1</strong> of <strong th:text="${pageMeta.totalPages}">1</strong>
+            </small>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <button class="page-link" th:disabled="${currentPage == 0}"
+                                th:onclick="|fetchPage(${currentPage - 1})|">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                    </li>
+                    <th:block th:each="i : ${#numbers.sequence(0, pageMeta.totalPages - 1)}">
+                        <li class="page-item" th:classappend="${i == currentPage} ? 'active'">
+                            <button class="page-link" th:text="${i + 1}"
+                                    th:onclick="|fetchPage(${i})|"></button>
+                        </li>
+                    </th:block>
+                    <li class="page-item" th:classappend="${currentPage + 1 >= pageMeta.totalPages} ? 'disabled'">
+                        <button class="page-link" th:disabled="${currentPage + 1 >= pageMeta.totalPages}"
+                                th:onclick="|fetchPage(${currentPage + 1})|">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- CREATE MODAL -->
+<div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0">New Employee</h5>
+                    <small class="text-muted">All fields marked * are required</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form th:action="@{/employees/create}" method="post" id="createForm" onsubmit="return handleCreateSubmit(event)">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Employee ID <span class="required-star">*</span></label>
+                            <input type="text" class="form-control" name="empId" id="c_empId"
+                                   placeholder="e.g. ABC12345F or A-B12345M" maxlength="10"/>
+                            <div class="field-error" id="err_c_empId">Format: 3 letters + 5 digits + M/F, or X-X#####M/F</div>
+                            <div class="form-text">Pattern: ABC12345F or A-B12345M</div>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">First Name <span class="required-star">*</span></label>
+                            <input type="text" class="form-control" name="fname" id="c_fname" placeholder="First name" maxlength="20"/>
+                            <div class="field-error" id="err_c_fname">First name is required</div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">M.I.</label>
+                            <input type="text" class="form-control" name="minit" id="c_minit" placeholder="A" maxlength="1"/>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Last Name <span class="required-star">*</span></label>
+                            <input type="text" class="form-control" name="lname" id="c_lname" placeholder="Last name" maxlength="30"/>
+                            <div class="field-error" id="err_c_lname">Last name is required</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Job ID <span class="required-star">*</span></label>
+                            <input type="number" class="form-control" name="jobId" id="c_jobId" placeholder="e.g. 5" min="1"/>
+                            <div class="field-error" id="err_c_jobId">Valid Job ID is required</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Job Level</label>
+                            <input type="number" class="form-control" name="jobLvl" id="c_jobLvl" placeholder="e.g. 100" min="10" max="250"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Publisher ID <span class="required-star">*</span></label>
+                            <input type="text" class="form-control" name="pubId" id="c_pubId" placeholder="e.g. 0877" maxlength="4"/>
+                            <div class="field-error" id="err_c_pubId">Publisher ID is required</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Hire Date &amp; Time <span class="required-star">*</span></label>
+                            <input type="datetime-local" class="form-control" name="hireDateStr" id="c_hireDate"/>
+                            <div class="field-error" id="err_c_hireDate">Hire date is required</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary d-inline-flex align-items-center" id="createSubmitBtn">
+                        <span class="btn-text">Create Employee</span>
+                        <span class="btn-spinner"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0">Edit Employee</h5>
+                    <small class="text-muted">Employee ID cannot be changed</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editForm" method="post" onsubmit="return handleEditSubmit(event)">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Employee ID</label>
+                            <input type="text" class="form-control bg-light" name="empId" id="e_empId" disabled/>
+                            <div class="form-text">ID is locked and cannot be edited</div>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">First Name <span class="required-star">*</span></label>
+                            <input type="text" class="form-control" name="fname" id="e_fname" placeholder="First name" maxlength="20"/>
+                            <div class="field-error" id="err_e_fname">First name is required</div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">M.I.</label>
+                            <input type="text" class="form-control" name="minit" id="e_minit" placeholder="A" maxlength="1"/>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Last Name <span class="required-star">*</span></label>
+                            <input type="text" class="form-control" name="lname" id="e_lname" placeholder="Last name" maxlength="30"/>
+                            <div class="field-error" id="err_e_lname">Last name is required</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Job ID <span class="required-star">*</span></label>
+                            <input type="number" class="form-control" name="jobId" id="e_jobId" placeholder="e.g. 5" min="1"/>
+                            <div class="field-error" id="err_e_jobId">Valid Job ID is required</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Job Level</label>
+                            <input type="number" class="form-control" name="jobLvl" id="e_jobLvl" placeholder="e.g. 100" min="10" max="250"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Publisher ID <span class="required-star">*</span></label>
+                            <input type="text" class="form-control" name="pubId" id="e_pubId" placeholder="e.g. 0877" maxlength="4"/>
+                            <div class="field-error" id="err_e_pubId">Publisher ID is required</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Hire Date &amp; Time <span class="required-star">*</span></label>
+                            <input type="datetime-local" class="form-control" name="hireDateStr" id="e_hireDate"/>
+                            <div class="field-error" id="err_e_hireDate">Hire date is required</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning d-inline-flex align-items-center" id="editSubmitBtn">
+                        <span class="btn-text">Save Changes</span>
+                        <span class="btn-spinner" style="border-color:rgba(0,0,0,.2);border-top-color:#333"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Toasts -->
+<div class="toast-wrap" style="display:flex;flex-direction:column;gap:10px;">
+
+    <!-- Success toast (green) -->
+    <div id="successToast" class="toast align-items-center border-0" role="alert"
+         style="background:#166534;color:#fff;min-width:320px;max-width:480px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.18);">
+        <div class="d-flex">
+            <div class="toast-body d-flex align-items-center gap-2" style="font-size:14px;font-weight:500;">
+                <i class="bi bi-check-circle-fill" style="font-size:18px;flex-shrink:0;"></i>
+                <span id="toastSuccessMsg">Saved!</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+
+    <!-- Error toast (red) -->
+    <div id="errorToast" class="toast align-items-center border-0" role="alert"
+         style="background:#7f1d1d;color:#fff;min-width:320px;max-width:520px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.18);">
+        <div class="d-flex">
+            <div class="toast-body d-flex align-items-center gap-2" style="font-size:14px;font-weight:500;">
+                <i class="bi bi-exclamation-circle-fill" style="font-size:18px;flex-shrink:0;color:#fca5a5;"></i>
+                <span id="toastErrorMsg" style="word-break:break-word;"></span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+
+</div>
+
+<!-- Server-side error message injected via flash attribute -->
+<span id="serverErrorMsg" style="display:none"
+      th:text="${toastError}" th:if="${toastError != null}"></span>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    var currentPage  = /*[[${currentPage}]]*/ 0;
+    var pageSize     = /*[[${pageSize}]]*/ 8;
+    var currentSearch = /*[[${search}]]*/ '';
+
+    window.addEventListener('load', function() {
+        var params = new URLSearchParams(window.location.search);
+        // Success toasts
+        if (params.get('toast') === 'created') showSuccessToast('Employee created successfully!');
+        if (params.get('toast') === 'updated') showSuccessToast('Employee updated successfully!');
+        // Error toast — message comes from server via hidden span (flash attribute)
+        if (params.get('toast') === 'error') {
+            var el = document.getElementById('serverErrorMsg');
+            var msg = el ? el.textContent.trim() : '';
+            showErrorToast(msg || 'Something went wrong. Please try again.');
+        }
+    });
+
+    // ── AJAX pagination ──────────────────────────────────────────
+    function fetchPage(page) {
+        var url = new URL(window.location.href);
+        url.searchParams.set('page', page);
+        url.searchParams.set('size', pageSize);
+        if (currentSearch) url.searchParams.set('search', currentSearch);
+        else url.searchParams.delete('search');
+        _doAjax(url, page);
+    }
+
+    function _doAjax(url, newPage) {
+        var section = document.getElementById('tableSection');
+        section.classList.add('loading');
+        fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, 'text/html');
+                var newBody = doc.getElementById('employeeTableBody');
+                if (newBody) document.getElementById('employeeTableBody').innerHTML = newBody.innerHTML;
+                var newPag = doc.getElementById('paginationRow');
+                var oldPag = document.getElementById('paginationRow');
+                if (newPag && oldPag) oldPag.outerHTML = newPag.outerHTML;
+                else if (!newPag && oldPag) oldPag.style.display = 'none';
+                history.pushState({}, '', url.toString());
+                if (newPage !== undefined) currentPage = newPage;
+                section.classList.remove('loading');
+            })
+            .catch(function() { section.classList.remove('loading'); });
+    }
+
+    // ── Search ───────────────────────────────────────────────────
+    var searchTimer;
+    function handleSearch(val) {
+        clearTimeout(searchTimer);
+        var clearBtn = document.getElementById('searchClearBtn');
+        clearBtn.style.display = val ? 'inline-flex' : 'none';
+        searchTimer = setTimeout(function() {
+            currentSearch = val.trim();
+            var url = new URL(window.location.href);
+            if (currentSearch) { url.searchParams.set('search', currentSearch); url.searchParams.delete('page'); }
+            else { url.searchParams.delete('search'); url.searchParams.set('page', '0'); }
+            _doAjax(url, 0);
+        }, 350);
+    }
+
+    function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('searchClearBtn').style.display = 'none';
+        handleSearch('');
+    }
+
+    // ── Modals ───────────────────────────────────────────────────
+    var createModalEl = new bootstrap.Modal(document.getElementById('createModal'));
+    var editModalEl   = new bootstrap.Modal(document.getElementById('editModal'));
+
+    function openCreateModal() {
+        clearCreateForm();
+        createModalEl.show();
+    }
+
+    function handleEditClick(btn) {
+        document.getElementById('e_empId').value   = btn.dataset.empid  || '';
+        document.getElementById('e_fname').value   = btn.dataset.fname  || '';
+        document.getElementById('e_minit').value   = btn.dataset.minit  || '';
+        document.getElementById('e_lname').value   = btn.dataset.lname  || '';
+        document.getElementById('e_jobId').value   = btn.dataset.jobid  || '';
+        document.getElementById('e_jobLvl').value  = btn.dataset.joblvl || '';
+        document.getElementById('e_pubId').value   = btn.dataset.pubid  || '';
+        document.getElementById('e_hireDate').value = btn.dataset.hiredate || '';
+        document.getElementById('editForm').action = '/employees/update/' + encodeURIComponent(btn.dataset.empid);
+        clearEditErrors();
+        editModalEl.show();
+    }
+
+    // ── Validation ───────────────────────────────────────────────
+    function validateEmpId(v)     { return /^(?:[A-Z]{3}|[A-Z]-[A-Z])[1-9][0-9]{4}[FM]$/.test(v); }
+    function validateRequired(v)  { return v != null && v.trim().length > 0; }
+    function validateJobId(v)     { return !isNaN(v) && parseInt(v) >= 1; }
+
+    function setError(inputId, errId, show) {
+        var inp = document.getElementById(inputId);
+        var err = document.getElementById(errId);
+        if (!inp || !err) return;
+        inp.classList.toggle('is-invalid', show);
+        inp.classList.toggle('invalid', show);
+        err.classList.toggle('show', show);
+    }
+
+    function handleCreateSubmit(e) {
+        e.preventDefault();
+        var ok = true;
+        var empId = document.getElementById('c_empId').value.trim();
+        if (!validateEmpId(empId)) { setError('c_empId','err_c_empId',true); ok=false; } else setError('c_empId','err_c_empId',false);
+        var fname = document.getElementById('c_fname').value;
+        if (!validateRequired(fname)) { setError('c_fname','err_c_fname',true); ok=false; } else setError('c_fname','err_c_fname',false);
+        var lname = document.getElementById('c_lname').value;
+        if (!validateRequired(lname)) { setError('c_lname','err_c_lname',true); ok=false; } else setError('c_lname','err_c_lname',false);
+        var jobId = document.getElementById('c_jobId').value;
+        if (!validateJobId(jobId)) { setError('c_jobId','err_c_jobId',true); ok=false; } else setError('c_jobId','err_c_jobId',false);
+        var pubId = document.getElementById('c_pubId').value;
+        if (!validateRequired(pubId)) { setError('c_pubId','err_c_pubId',true); ok=false; } else setError('c_pubId','err_c_pubId',false);
+        var hireDate = document.getElementById('c_hireDate').value;
+        if (!validateRequired(hireDate)) { setError('c_hireDate','err_c_hireDate',true); ok=false; } else setError('c_hireDate','err_c_hireDate',false);
+        if (!ok) return false;
+        var btn = document.getElementById('createSubmitBtn');
+        btn.classList.add('loading'); btn.disabled = true;
+        document.getElementById('createForm').submit();
+        return true;
+    }
+
+    function handleEditSubmit(e) {
+        e.preventDefault();
+        var ok = true;
+        var fname = document.getElementById('e_fname').value;
+        if (!validateRequired(fname)) { setError('e_fname','err_e_fname',true); ok=false; } else setError('e_fname','err_e_fname',false);
+        var lname = document.getElementById('e_lname').value;
+        if (!validateRequired(lname)) { setError('e_lname','err_e_lname',true); ok=false; } else setError('e_lname','err_e_lname',false);
+        var jobId = document.getElementById('e_jobId').value;
+        if (!validateJobId(jobId)) { setError('e_jobId','err_e_jobId',true); ok=false; } else setError('e_jobId','err_e_jobId',false);
+        var pubId = document.getElementById('e_pubId').value;
+        if (!validateRequired(pubId)) { setError('e_pubId','err_e_pubId',true); ok=false; } else setError('e_pubId','err_e_pubId',false);
+        var hireDate = document.getElementById('e_hireDate').value;
+        if (!validateRequired(hireDate)) { setError('e_hireDate','err_e_hireDate',true); ok=false; } else setError('e_hireDate','err_e_hireDate',false);
+        if (!ok) return false;
+        var btn = document.getElementById('editSubmitBtn');
+        btn.classList.add('loading'); btn.disabled = true;
+        document.getElementById('editForm').submit();
+        return true;
+    }
+
+    function clearCreateForm() {
+        ['c_empId','c_fname','c_minit','c_lname','c_jobId','c_jobLvl','c_pubId','c_hireDate'].forEach(function(id){
+            var el = document.getElementById(id); if(el){el.value='';el.classList.remove('is-invalid','invalid');}
+        });
+        ['err_c_empId','err_c_fname','err_c_lname','err_c_jobId','err_c_pubId','err_c_hireDate'].forEach(function(id){
+            var el = document.getElementById(id); if(el) el.classList.remove('show');
+        });
+    }
+
+    function clearEditErrors() {
+        ['e_fname','e_lname','e_jobId','e_pubId','e_hireDate'].forEach(function(id){
+            var el=document.getElementById(id); if(el) el.classList.remove('is-invalid','invalid');
+        });
+        ['err_e_fname','err_e_lname','err_e_jobId','err_e_pubId','err_e_hireDate'].forEach(function(id){
+            var el=document.getElementById(id); if(el) el.classList.remove('show');
+        });
+    }
+
+    function showSuccessToast(msg) {
+        document.getElementById('toastSuccessMsg').textContent = msg;
+        var t = new bootstrap.Toast(document.getElementById('successToast'), { delay: 3500 });
+        t.show();
+    }
+
+    function showErrorToast(msg) {
+        document.getElementById('toastErrorMsg').textContent = msg;
+        // Errors stay longer so the user can read them
+        var t = new bootstrap.Toast(document.getElementById('errorToast'), { delay: 6000 });
+        t.show();
+    }
+</script>
+</body>
+</html>

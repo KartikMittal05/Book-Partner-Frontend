@@ -151,12 +151,12 @@
                 </a>
             </div>
             <div class="col-md-4 col-lg-3">
-                <div class="member-card disabled" style="--card-color:#D97706">
+                <a th:href="@{/titles}" class="member-card" style="--card-color:#D97706">
                     <div class="avatar" style="background:#FFFBEB;color:#D97706">TA</div>
                     <div class="member-name">Tanmay</div>
                     <div class="member-module">Titles Module</div>
                     <div class="module-badge" style="background:#FFFBEB;color:#D97706">Titles</div>
-                </div>
+                </a>
             </div>
             <div class="col-md-4 col-lg-3">
                 <a th:href="@{/stores}" class="member-card" style="--card-color:#2563EB">
@@ -166,14 +166,15 @@
                     <div class="module-badge" style="background:#FEF2F2;color:#DC2626">Stores</div>
                 </a>
             </div>
-            <div class="col-md-4 col-lg-3">
-                <div class="member-card disabled" style="--card-color:#DB2777">
-                    <div class="avatar" style="background:#FDF2F8;color:#DB2777">SW</div>
-                    <div class="member-name">Swati</div>
-                    <div class="member-module">Employee Module</div>
-                    <div class="module-badge" style="background:#FDF2F8;color:#DB2777">Employees</div>
-                </div>
-            </div>
+			<div class="col-md-4 col-lg-3">
+			           
+					<a th:href="@{/employees}" class="member-card" style="--card-color:#DB2777">
+			               <div class="avatar" style="background:#FDF2F8;color:#DB2777">SW</div>
+			               <div class="member-name">Swati</div>
+			               <div class="member-module">Employee Module</div>
+			               <div class="module-badge" style="background:#FDF2F8;color:#DB2777">Employees</div>
+			           </a>
+			       </div>
         </div>
     </div>
 

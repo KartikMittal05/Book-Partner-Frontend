@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="${pageTitle}">Titles</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <style>
+        body { background: #f1f5f9; }
+        .page-hero {
+            background: linear-gradient(135deg, #1c1200 0%, #3b2500 60%, #7c4a00 100%);
+            color: white; padding: 36px 0 32px;
+        }
+        .table-card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); overflow: hidden; }
+        .table thead th { background: #fefaf3; font-size: 12px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .6px; color: #92400e; border-bottom: 2px solid #fde68a; padding: 14px 16px; }
+        .table tbody td { padding: 12px 16px; vertical-align: middle; font-size: 14px; }
+        .table tbody tr { transition: background 0.15s; }
+        .table tbody tr:hover { background: #fffbf0; }
+        .mono { font-family: 'Courier New', monospace; font-size: 13px; color: #78350f; }
+        .search-box { position: relative; }
+        .search-box .bi-search { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+        .search-box input { padding-left: 36px; border-radius: 8px; border: 1.5px solid #e2e8f0; transition: border-color .2s; }
+        .search-box input:focus { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.12); }
+        .empty-state { padding: 60px 20px; text-align: center; color: #94a3b8; }
+        .empty-state i { font-size: 48px; display: block; margin-bottom: 12px; }
+        .btn-spinner { display: none; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.4);
+            border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; margin-left: 6px; }
+        .btn.loading .btn-spinner { display: inline-block; }
+        .btn.loading .btn-text { opacity: 0.7; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #tableSection { transition: opacity 0.2s; }
+        #tableSection.loading { opacity: 0.45; pointer-events: none; }
+        .page-link { border-radius: 6px !important; margin: 0 2px; }
+        .page-item.active .page-link { background: #d97706; border-color: #d97706; }
+        .modal-header { background: #fefaf3; border-bottom: 1.5px solid #fde68a; }
+        .form-label { font-size: 13px; font-weight: 600; color: #374151; }
+        .form-control:focus, .form-select:focus { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,0.12); }
+        .required-star { color: #ef4444; }
+        .field-error { display: none; font-size: 12px; color: #ef4444; margin-top: 4px; }
+        .field-error.show { display: block; }
+        .form-control.invalid, .form-select.invalid { border-color: #ef4444; }
+        .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 9999; }
+        .author-checklist { max-height: 220px; overflow-y: auto; border: 1.5px solid #e2e8f0;
+            border-radius: 8px; padding: 6px 10px; background: #fff; }
+        .author-checklist.invalid { border-color: #ef4444; }
+        .author-checklist .form-check { padding: 4px 0 4px 1.5rem; border-bottom: 1px solid #f1f5f9; }
+        .author-checklist .form-check:last-child { border-bottom: none; }
+        .author-checklist .form-check-input:checked { background-color: #d97706; border-color: #d97706; }
+        .author-checklist .form-check-label { font-size: 13px; }
+        .checklist-search { padding: 5px 10px; border: 1.5px solid #e2e8f0; border-radius: 6px;
+            font-size: 13px; width: 100%; margin-bottom: 6px; }
+        .checklist-search:focus { outline: none; border-color: #d97706; }
+        .roy-tier-row { background: #fafafa; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; }
+        .roy-tier-row.existing { background: #fefaf3; border-color: #fde68a; }
+        .title-id-preview { font-family: 'Courier New', monospace; font-size: 15px; font-weight: 700;
+            color: #92400e; background: #fefaf3; border: 1.5px solid #fde68a; border-radius: 8px;
+            padding: 8px 14px; display: inline-block; letter-spacing: 1px; min-width: 90px; text-align: center; }
+        .prefix-badge { background: #d97706; color: white; font-family: 'Courier New', monospace;
+            font-weight: 700; font-size: 14px; padding: 8px 12px; border-radius: 8px 0 0 8px;
+            border: 1.5px solid #d97706; line-height: 1.5; }
+        .author-check-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .author-check-item .check-left { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+        .author-royalty-wrap { display: none; align-items: center; gap: 4px; flex-shrink: 0; }
+        .author-royalty-wrap.show { display: flex; }
+        .author-royalty-input { width: 68px; font-size: 12px; padding: 3px 6px; border-radius: 6px;
+            border: 1.5px solid #fde68a; text-align: center; }
+        .author-royalty-input:focus { outline: none; border-color: #d97706; box-shadow: 0 0 0 2px rgba(217,119,6,0.15); }
+        .royalty-pct-label { font-size: 12px; color: #92400e; font-weight: 600; }
+        .tier-label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .5px; color: #92400e; margin-bottom: 6px; }
+    </style>
+</head>
+
+<body>
+
+<div th:replace="~{fragments/navbar :: navbar}" th:with="activePage='titles'"></div>
+
+<!-- Page Hero -->
+<div class="page-hero">
+    <div class="container-fluid px-4">
+        <nav aria-label="breadcrumb" class="mb-2">
+            <ol class="breadcrumb mb-0" style="--bs-breadcrumb-divider-color:rgba(255,255,255,.4)">
+                <li class="breadcrumb-item"><a th:href="@{/}" class="text-white-50 text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item active text-white">Titles</li>
+            </ol>
+        </nav>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+                <h1 class="h3 fw-bold mb-1">Titles</h1>
+                <p class="mb-0 text-white-50 small">Manage book title records — Tanmay's Module</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a th:href="@{/}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Back
+                </a>
+                <button class="btn btn-warning btn-sm fw-semibold" onclick="openCreateModal()">
+                    <i class="bi bi-plus-lg me-1"></i>New Title
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid px-4 py-4">
+    <!-- Controls Row -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width:420px">
+            <div class="search-box flex-grow-1">
+                <i class="bi bi-search"></i>
+                <input type="text" class="form-control form-control-sm" id="searchInput"
+                       placeholder="Search by ID, title, type, publisher…"
+                       th:value="${search}" oninput="handleSearch(this.value)" autocomplete="off"/>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm" id="searchClearBtn"
+                    th:style="${search != null and !search.isEmpty()} ? 'display:inline-flex' : 'display:none'"
+                    style="display:none" onclick="clearSearch()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <span class="text-muted small" th:if="${pageMeta != null}">
+            <i class="bi bi-book me-1"></i>
+            <strong th:text="${pageMeta.totalElements}">0</strong> titles total
+        </span>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card" id="tableSection">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Title ID</th>
+                        <th>Title</th>
+                        <th>Type</th>
+                        <th>Publisher</th>
+                        <th>Price</th>
+                        <th>YTD Sales</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="titleTableBody">
+                    <tr th:if="${titles == null or titles.isEmpty()}">
+                        <td colspan="7">
+                            <div class="empty-state">
+                                <i class="bi bi-book"></i>
+                                <p class="fw-semibold mb-1">No titles found</p>
+                                <span class="small" th:if="${search != null and !search.isEmpty()}">Try a different search term</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:each="t : ${titles}" th:if="${titles != null and !titles.isEmpty()}">
+                        <td class="mono" th:text="${t.titleId}"></td>
+                        <td><strong th:text="${t.title}"></strong></td>
+                        <td>
+                            <span class="badge rounded-pill text-bg-warning" th:text="${t.type ?: '—'}"></span>
+                        </td>
+                        <td class="mono" th:text="${t.resolvedPubId ?: '—'}"></td>
+                        <td th:text="${t.price != null ? '$' + #numbers.formatDecimal(t.price, 1, 'COMMA', 2, 'POINT') : '—'}"></td>
+                        <td th:text="${t.ytdSales != null ? #numbers.formatInteger(t.ytdSales, 1, 'COMMA') : '—'}"></td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a th:href="@{/titles/{id}(id=${t.titleId})}" class="btn btn-outline-warning btn-sm">
+                                    <i class="bi bi-eye me-1"></i>View
+                                </a>
+                                <button class="btn btn-outline-secondary btn-sm"
+                                        th:attr="data-titleid=${t.titleId},
+                                                 data-title=${t.title},
+                                                 data-type=${t.type},
+                                                 data-pubid=${t.resolvedPubId},
+                                                 data-price=${t.price},
+                                                 data-advance=${t.advance},
+                                                 data-ytdsales=${t.ytdSales},
+                                                 data-notes=${t.notes},
+                                                 data-pubdate=${t.pubdate}"
+                                        onclick="handleEditClick(this)">
+                                    <i class="bi bi-pencil me-1"></i>Edit
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex align-items-center justify-content-between px-3 py-3 border-top"
+             id="paginationRow"
+             th:if="${pageMeta != null and pageMeta.totalPages > 1 and (search == null or search.isEmpty())}">
+            <small class="text-muted">
+                Page <strong th:text="${currentPage + 1}">1</strong> of <strong th:text="${pageMeta.totalPages}">1</strong>
+            </small>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <button class="page-link" th:onclick="|fetchPage(${currentPage - 1})|">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                    </li>
+                    <th:block th:each="i : ${#numbers.sequence(0, pageMeta.totalPages - 1)}">
+                        <li class="page-item" th:classappend="${i == currentPage} ? 'active'">
+                            <button class="page-link" th:text="${i + 1}" th:onclick="|fetchPage(${i})|"></button>
+                        </li>
+                    </th:block>
+                    <li class="page-item" th:classappend="${currentPage + 1 >= pageMeta.totalPages} ? 'disabled'">
+                        <button class="page-link" th:onclick="|fetchPage(${currentPage + 1})|">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- ══ CREATE MODAL ══ -->
+<div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0">New Title</h5>
+                    <small class="text-muted">Fields marked * are required</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form th:action="@{/titles/create}" method="post" id="createForm" onsubmit="return handleCreateSubmit(event)">
+                <div class="modal-body">
+                    <div class="row g-3">
+
+                        <!-- Type + Title ID -->
+                        <div class="col-md-6">
+                            <label class="form-label">Type <span class="required-star">*</span></label>
+                            <select class="form-select" name="type" id="c_type" onchange="onTypeChange()">
+                                <option value="">Select type…</option>
+                                <option value="business">business</option>
+                                <option value="mod_cook">mod_cook</option>
+                                <option value="psychology">psychology</option>
+                                <option value="trad_cook">trad_cook</option>
+                                <option value="popular_comp">popular_comp</option>
+                                <option value="UNDECIDED">UNDECIDED</option>
+                            </select>
+                            <div class="field-error" id="err_c_type">Type is required</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Title ID <span class="required-star">*</span></label>
+                            <div class="d-flex align-items-stretch">
+                                <span class="prefix-badge" id="c_prefixBadge">??</span>
+                                <input type="number" class="form-control" id="c_titleNum"
+                                       placeholder="4-digit number e.g. 1032"
+                                       min="1000" max="9999" style="border-radius: 0 8px 8px 0;"/>
+                            </div>
+                            <input type="hidden" name="titleId" id="c_titleId"/>
+                            <div class="field-error" id="err_c_titleId">Select a type and enter a 4-digit number (1000–9999)</div>
+                            <div class="form-text">
+                                Preview: <span class="title-id-preview" id="c_titleIdPreview">??____</span>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Title Name <span class="required-star">*</span></label>
+                            <input type="text" class="form-control" name="title" id="c_title"
+                                   placeholder="Full book title" maxlength="80"/>
+                            <div class="field-error" id="err_c_title">Title name is required</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Publisher <span class="required-star">*</span></label>
+                            <select class="form-select" name="pubId" id="c_pubId">
+                                <option value="">Select publisher…</option>
+                                <option th:each="pub : ${publishers}"
+                                        th:value="${pub.pubId}"
+                                        th:text="${pub.pubId + ' — ' + pub.pubName}">
+                                </option>
+                            </select>
+                            <div class="field-error" id="err_c_pubId">Publisher is required</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Price ($)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" name="price" id="c_price" placeholder="e.g. 19.99"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Advance ($)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" name="advance" id="c_advance" placeholder="e.g. 5000"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">YTD Sales</label>
+                            <input type="number" min="0" class="form-control" name="ytdSales" id="c_ytdSales" placeholder="e.g. 4095"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Publication Date <span class="required-star">*</span></label>
+                            <input type="date" class="form-control" name="pubdate" id="c_pubdate"/>
+                            <div class="field-error" id="err_c_pubdate">Publication date is required</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Notes</label>
+                            <input type="text" class="form-control" name="notes" id="c_notes"
+                                   placeholder="Optional notes" maxlength="200"/>
+                        </div>
+
+                        <!-- Royalty Schedule -->
+                        <div class="col-12">
+                            <label class="form-label">
+                                Royalty Schedule
+                                <span class="text-muted fw-normal">(optional)</span>
+                            </label>
+                            <div id="c_royTiers" class="d-flex flex-column gap-2 mb-2"></div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addCreateRoyTier()">
+                                <i class="bi bi-plus-lg me-1"></i>Add Tier
+                            </button>
+                        </div>
+
+                        <!-- Authors with per-author royalty -->
+                        <div class="col-12">
+                            <label class="form-label">
+                                Authors <span class="required-star">*</span>
+                                <span class="text-muted fw-normal">(at least one required)</span>
+                            </label>
+                            <input type="text" class="checklist-search" id="c_authorSearch"
+                                   placeholder="Filter authors…" oninput="filterAuthors('c_', this.value)"/>
+                            <div class="author-checklist" id="c_authorChecklist">
+                                <div th:each="a : ${authors}" class="form-check author-check-item"
+                                     th:attr="data-auid=${a['auId']}">
+                                    <div class="check-left">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="authorIds" th:value="${a['auId']}"
+                                               th:id="|c_au_${a['auId']}|"
+                                               onchange="onAuthorCheckChange('c_', this)"/>
+                                        <label class="form-check-label" th:for="|c_au_${a['auId']}|"
+                                               th:text="${a['auId'] + ' — ' + a['auFname'] + ' ' + a['auLname']}"></label>
+                                    </div>
+                                    <div class="author-royalty-wrap" th:id="|c_royWrap_${a['auId']}|">
+                                        <input type="number" min="0" max="100"
+                                               class="author-royalty-input"
+                                               name="authorRoyalties"
+                                               placeholder="0"
+                                               th:id="|c_royInput_${a['auId']}|"
+                                               disabled/>
+                                        <span class="royalty-pct-label">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field-error" id="err_c_authors">At least one author is required</div>
+                            <div class="form-text">Check authors and optionally set each author's royalty %.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning d-inline-flex align-items-center" id="createSubmitBtn">
+                        <span class="btn-text">Create Title</span>
+                        <span class="btn-spinner"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ══ EDIT MODAL ══ -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0">Edit Title</h5>
+                    <small class="text-muted">Title ID cannot be changed</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editForm" method="post" onsubmit="return handleEditSubmit(event)">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Title ID</label>
+                            <input type="text" class="form-control bg-light" name="titleId" id="e_titleId" disabled/>
+                            <div class="form-text">ID is locked</div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Title Name <span class="required-star">*</span></label>
+                            <input type="text" class="form-control" name="title" id="e_title" maxlength="80"/>
+                            <div class="field-error" id="err_e_title">Title name is required</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Type</label>
+                            <select class="form-select" name="type" id="e_type">
+                                <option value="">Select type…</option>
+                                <option value="business">business</option>
+                                <option value="mod_cook">mod_cook</option>
+                                <option value="psychology">psychology</option>
+                                <option value="trad_cook">trad_cook</option>
+                                <option value="popular_comp">popular_comp</option>
+                                <option value="UNDECIDED">UNDECIDED</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Publisher</label>
+                            <select class="form-select" name="pubId" id="e_pubId">
+                                <option value="">Select publisher…</option>
+                                <option th:each="pub : ${publishers}"
+                                        th:value="${pub.pubId}"
+                                        th:text="${pub.pubId + ' — ' + pub.pubName}">
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Publication Date <span class="required-star">*</span></label>
+                            <input type="date" class="form-control" name="pubdate" id="e_pubdate"/>
+                            <div class="field-error" id="err_e_pubdate">Publication date is required</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Price ($)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" name="price" id="e_price"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Advance ($)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" name="advance" id="e_advance"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">YTD Sales</label>
+                            <input type="number" min="0" class="form-control" name="ytdSales" id="e_ytdSales"/>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Notes</label>
+                            <input type="text" class="form-control" name="notes" id="e_notes" maxlength="200"/>
+                        </div>
+
+                        <!-- Royalty Schedule -->
+                        <div class="col-12">
+                            <label class="form-label">Royalty Schedule</label>
+                            <div id="e_existingRoyTiers" class="d-flex flex-column gap-2 mb-2">
+                                <!-- existing tiers rendered here by JS -->
+                            </div>
+                            <div class="tier-label mt-3 mb-1">Add New Tiers</div>
+                            <div id="e_royTiers" class="d-flex flex-column gap-2 mb-2"></div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addEditRoyTier()">
+                                <i class="bi bi-plus-lg me-1"></i>Add Tier
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning d-inline-flex align-items-center" id="editSubmitBtn">
+                        <span class="btn-text">Save Changes</span>
+                        <span class="btn-spinner" style="border-color:rgba(0,0,0,.2);border-top-color:#333"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap">
+    <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body d-flex align-items-center gap-2">
+                <i class="bi bi-check-circle-fill"></i>
+                <span id="toastMsg">Saved!</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    var currentPage   = /*[[${currentPage}]]*/ 0;
+    var pageSize      = /*[[${pageSize}]]*/ 8;
+    var currentSearch = /*[[${search}]]*/ '';
+
+    window.addEventListener('load', function () {
+        var p = new URLSearchParams(window.location.search);
+        if (p.get('success') === 'create') showToast('Title created successfully!');
+        if (p.get('success') === 'update') showToast('Title updated successfully!');
+        if (p.get('error') === 'create') showErrorToast('Failed to create title. Check all required fields.');
+    });
+
+    // ── Type → Prefix mapping ─────────────────────────────────────────────────
+
+    var TYPE_PREFIX = {
+        'business':     'BU',
+        'mod_cook':     'MC',
+        'psychology':   'PS',
+        'trad_cook':    'TC',
+        'popular_comp': 'PC',
+        'UNDECIDED':    'UN'
+    };
+
+    function getPrefix(type) {
+        return TYPE_PREFIX[type] || '??';
+    }
+
+    function onTypeChange() {
+        var type   = document.getElementById('c_type').value;
+        var prefix = getPrefix(type);
+        document.getElementById('c_prefixBadge').textContent = prefix;
+        updateTitleIdPreview();
+        if (type) {
+            document.getElementById('c_type').classList.remove('invalid');
+            document.getElementById('err_c_type').classList.remove('show');
+        }
+    }
+
+    function updateTitleIdPreview() {
+        var type    = document.getElementById('c_type').value;
+        var num     = document.getElementById('c_titleNum').value.trim();
+        var prefix  = getPrefix(type);
+        var preview = document.getElementById('c_titleIdPreview');
+        preview.textContent = (prefix === '??' ? '??' : prefix) + (num || '____');
+    }
+
+    document.getElementById('c_titleNum').addEventListener('input', function() {
+        updateTitleIdPreview();
+        var num  = this.value.trim();
+        var type = document.getElementById('c_type').value;
+        if (type && num.length === 4) {
+            this.classList.remove('invalid');
+            document.getElementById('err_c_titleId').classList.remove('show');
+        }
+    });
+
+    // ── Pagination / Search ───────────────────────────────────────────────────
+
+    function fetchPage(page) {
+        var url = new URL(window.location.href);
+        url.searchParams.set('page', page);
+        url.searchParams.set('size', pageSize);
+        if (currentSearch) url.searchParams.set('search', currentSearch);
+        else url.searchParams.delete('search');
+        _doAjax(url, page);
+    }
+
+    function _doAjax(url, newPage) {
+        var section = document.getElementById('tableSection');
+        section.classList.add('loading');
+        fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                var nb = doc.getElementById('titleTableBody');
+                if (nb) document.getElementById('titleTableBody').innerHTML = nb.innerHTML;
+                var np = doc.getElementById('paginationRow');
+                var op = document.getElementById('paginationRow');
+                if (np && op) op.outerHTML = np.outerHTML;
+                else if (!np && op) op.style.display = 'none';
+                history.pushState({}, '', url.toString());
+                if (newPage !== undefined) currentPage = newPage;
+                section.classList.remove('loading');
+            })
+            .catch(function () { section.classList.remove('loading'); });
+    }
+
+    var searchTimer;
+    function handleSearch(val) {
+        clearTimeout(searchTimer);
+        document.getElementById('searchClearBtn').style.display = val ? 'inline-flex' : 'none';
+        searchTimer = setTimeout(function () {
+            currentSearch = val.trim();
+            var url = new URL(window.location.href);
+            if (currentSearch) { url.searchParams.set('search', currentSearch); url.searchParams.delete('page'); }
+            else { url.searchParams.delete('search'); url.searchParams.set('page', '0'); }
+            _doAjax(url, 0);
+        }, 350);
+    }
+
+    function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('searchClearBtn').style.display = 'none';
+        handleSearch('');
+    }
+
+    // ── Author checklist helpers ──────────────────────────────────────────────
+
+    function filterAuthors(prefix, query) {
+        var items = document.querySelectorAll('#' + prefix + 'authorChecklist .author-check-item');
+        var q = query.toLowerCase();
+        items.forEach(function (item) {
+            var label = item.querySelector('.form-check-label').textContent.toLowerCase();
+            item.style.display = label.includes(q) ? '' : 'none';
+        });
+    }
+
+    function onAuthorCheckChange(prefix, checkbox) {
+        var auId    = checkbox.closest('.author-check-item').dataset.auid;
+        var wrap    = document.getElementById(prefix + 'royWrap_' + auId);
+        var input   = document.getElementById(prefix + 'royInput_' + auId);
+        var checked = checkbox.checked;
+
+        if (wrap)  wrap.classList.toggle('show', checked);
+        if (input) {
+            input.disabled = !checked;
+            if (!checked) input.value = '';
+        }
+
+        var anyChecked = document.querySelectorAll(
+            '#' + prefix + 'authorChecklist input[type=checkbox]:checked').length > 0;
+        var checklist = document.getElementById(prefix + 'authorChecklist');
+        var errEl     = document.getElementById('err_' + prefix + 'authors');
+        if (anyChecked) {
+            checklist.classList.remove('invalid');
+            errEl.classList.remove('show');
+        }
+    }
+
+    function uncheckAllAuthors(prefix) {
+        document.querySelectorAll('#' + prefix + 'authorChecklist input[type=checkbox]').forEach(function (cb) {
+            if (cb.checked) {
+                cb.checked = false;
+                onAuthorCheckChange(prefix, cb);
+            }
+        });
+    }
+
+    function validateAtLeastOneAuthor(prefix) {
+        var anyChecked = document.querySelectorAll(
+            '#' + prefix + 'authorChecklist input[type=checkbox]:checked').length > 0;
+        var checklist = document.getElementById(prefix + 'authorChecklist');
+        var errEl     = document.getElementById('err_' + prefix + 'authors');
+        checklist.classList.toggle('invalid', !anyChecked);
+        errEl.classList.toggle('show', !anyChecked);
+        return anyChecked;
+    }
+
+    // ── Royalty tier builders ─────────────────────────────────────────────────
+
+    function addCreateRoyTier() {
+        var container = document.getElementById('c_royTiers');
+        var row = document.createElement('div');
+        row.className = 'd-flex gap-2 align-items-end roy-tier-row';
+        row.innerHTML =
+            '<div class="flex-fill">' +
+                '<label class="form-label mb-1" style="font-size:12px">Low Range</label>' +
+                '<input type="number" min="0" class="form-control form-control-sm" name="rs_lorange" placeholder="e.g. 0"/>' +
+            '</div>' +
+            '<div class="flex-fill">' +
+                '<label class="form-label mb-1" style="font-size:12px">High Range</label>' +
+                '<input type="number" min="0" class="form-control form-control-sm" name="rs_hirange" placeholder="e.g. 5000"/>' +
+            '</div>' +
+            '<div style="width:110px">' +
+                '<label class="form-label mb-1" style="font-size:12px">Royalty %</label>' +
+                '<input type="number" min="0" max="100" class="form-control form-control-sm" name="rs_royalty" placeholder="e.g. 10"/>' +
+            '</div>' +
+            '<button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'.roy-tier-row\').remove()" title="Remove">' +
+                '<i class="bi bi-trash"></i>' +
+            '</button>';
+        container.appendChild(row);
+    }
+
+    function addEditRoyTier() {
+        var container = document.getElementById('e_royTiers');
+        var row = document.createElement('div');
+        row.className = 'd-flex gap-2 align-items-end roy-tier-row';
+        row.innerHTML =
+            '<div class="flex-fill">' +
+                '<label class="form-label mb-1" style="font-size:12px">Low Range</label>' +
+                '<input type="number" min="0" class="form-control form-control-sm" name="rs_new_lorange" placeholder="e.g. 0"/>' +
+            '</div>' +
+            '<div class="flex-fill">' +
+                '<label class="form-label mb-1" style="font-size:12px">High Range</label>' +
+                '<input type="number" min="0" class="form-control form-control-sm" name="rs_new_hirange" placeholder="e.g. 5000"/>' +
+            '</div>' +
+            '<div style="width:110px">' +
+                '<label class="form-label mb-1" style="font-size:12px">Royalty %</label>' +
+                '<input type="number" min="0" max="100" class="form-control form-control-sm" name="rs_new_royalty" placeholder="e.g. 10"/>' +
+            '</div>' +
+            '<button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest(\'.roy-tier-row\').remove()" title="Remove">' +
+                '<i class="bi bi-trash"></i>' +
+            '</button>';
+        container.appendChild(row);
+    }
+
+    function renderExistingTier(rs) {
+        var row = document.createElement('div');
+        row.className = 'd-flex gap-2 align-items-end roy-tier-row existing';
+        row.innerHTML =
+            '<input type="hidden" name="rs_id" value="' + rs.roySchedId + '"/>' +
+            '<div class="flex-fill">' +
+                '<label class="form-label mb-1" style="font-size:12px">Low Range</label>' +
+                '<input type="number" min="0" class="form-control form-control-sm" name="rs_lorange" value="' + (rs.lorange || 0) + '"/>' +
+            '</div>' +
+            '<div class="flex-fill">' +
+                '<label class="form-label mb-1" style="font-size:12px">High Range</label>' +
+                '<input type="number" min="0" class="form-control form-control-sm" name="rs_hirange" value="' + (rs.hirange || 0) + '"/>' +
+            '</div>' +
+            '<div style="width:110px">' +
+                '<label class="form-label mb-1" style="font-size:12px">Royalty %</label>' +
+                '<input type="number" min="0" max="100" class="form-control form-control-sm" name="rs_royalty" value="' + (rs.royalty || 0) + '"/>' +
+            '</div>' +
+            '<div style="width:36px"></div>'; /* spacer to align with new-tier trash button */
+        return row;
+    }
+
+    // ── Modals ────────────────────────────────────────────────────────────────
+
+    var createModalEl = new bootstrap.Modal(document.getElementById('createModal'));
+    var editModalEl   = new bootstrap.Modal(document.getElementById('editModal'));
+
+    function openCreateModal() {
+        clearCreateForm();
+        createModalEl.show();
+    }
+
+    var _editTitleId = '';
+
+    function handleEditClick(btn) {
+        _editTitleId = btn.dataset.titleid || '';
+
+        document.getElementById('e_titleId').value  = _editTitleId;
+        document.getElementById('e_title').value    = btn.dataset.title    || '';
+        document.getElementById('e_price').value    = btn.dataset.price    || '';
+        document.getElementById('e_advance').value  = btn.dataset.advance  || '';
+        document.getElementById('e_ytdSales').value = btn.dataset.ytdsales || '';
+        document.getElementById('e_notes').value    = btn.dataset.notes    || '';
+        document.getElementById('e_pubdate').value  = btn.dataset.pubdate
+            ? btn.dataset.pubdate.substring(0, 10) : '';
+        document.getElementById('e_type').value     = btn.dataset.type  || '';
+        document.getElementById('e_pubId').value    = btn.dataset.pubid || '';
+
+        // Clear both tier containers
+        document.getElementById('e_existingRoyTiers').innerHTML = '';
+        document.getElementById('e_royTiers').innerHTML = '';
+        clearEditErrors();
+
+        // Fetch existing royalty tiers and render them
+        fetch('/titles/' + encodeURIComponent(_editTitleId) + '/royscheds')
+            .then(function(r) { return r.json(); })
+            .then(function(tiers) {
+                var container = document.getElementById('e_existingRoyTiers');
+                if (tiers && tiers.length > 0) {
+                    tiers.forEach(function(rs) {
+                        container.appendChild(renderExistingTier(rs));
+                    });
+                } else {
+                    container.innerHTML = '<p class="text-muted small mb-0">No existing tiers.</p>';
+                }
+            })
+            .catch(function() {
+                document.getElementById('e_existingRoyTiers').innerHTML =
+                    '<p class="text-danger small mb-0">Could not load existing tiers.</p>';
+            });
+
+        editModalEl.show();
+    }
+
+    // ── Form validation ───────────────────────────────────────────────────────
+
+    function setError(inputId, errId, show) {
+        var inp = document.getElementById(inputId);
+        var err = document.getElementById(errId);
+        if (!inp || !err) return;
+        inp.classList.toggle('invalid', show);
+        err.classList.toggle('show', show);
+    }
+
+    function handleCreateSubmit(e) {
+        e.preventDefault();
+        var ok = true;
+
+        var type = document.getElementById('c_type').value;
+        setError('c_type', 'err_c_type', !type); if (!type) ok = false;
+
+        var num = document.getElementById('c_titleNum').value.trim();
+        var numValid = type && num.length === 4 && /^\d{4}$/.test(num);
+        var numEl = document.getElementById('c_titleNum');
+        var errEl = document.getElementById('err_c_titleId');
+        numEl.classList.toggle('invalid', !numValid);
+        errEl.classList.toggle('show', !numValid);
+        if (!numValid) ok = false;
+
+        if (type && numValid) {
+            document.getElementById('c_titleId').value = getPrefix(type) + num;
+        }
+
+        var title = document.getElementById('c_title').value.trim();
+        setError('c_title', 'err_c_title', !title); if (!title) ok = false;
+
+        var pubId = document.getElementById('c_pubId').value;
+        setError('c_pubId', 'err_c_pubId', !pubId); if (!pubId) ok = false;
+
+        var pubdate = document.getElementById('c_pubdate').value;
+        setError('c_pubdate', 'err_c_pubdate', !pubdate); if (!pubdate) ok = false;
+
+        if (!validateAtLeastOneAuthor('c_')) ok = false;
+
+        if (!ok) return false;
+        var btn = document.getElementById('createSubmitBtn');
+        btn.classList.add('loading'); btn.disabled = true;
+        document.getElementById('createForm').submit();
+        return true;
+    }
+
+    function handleEditSubmit(e) {
+        e.preventDefault();
+        var ok = true;
+
+        var title = document.getElementById('e_title').value.trim();
+        setError('e_title', 'err_e_title', !title); if (!title) ok = false;
+
+        var pubdate = document.getElementById('e_pubdate').value;
+        setError('e_pubdate', 'err_e_pubdate', !pubdate); if (!pubdate) ok = false;
+
+        if (!ok) return false;
+
+        var btn = document.getElementById('editSubmitBtn');
+        btn.classList.add('loading'); btn.disabled = true;
+
+        // Always do two sequential POSTs:
+        // 1. Update title fields
+        // 2. Update royalty schedule (existing tiers + any new tiers)
+        var titleForm = document.getElementById('editForm');
+        titleForm.action = '/titles/update/' + encodeURIComponent(_editTitleId);
+        var titleData = new FormData(titleForm);
+
+        var rsData = new FormData();
+        // Existing tiers
+        document.querySelectorAll('#e_existingRoyTiers input[name="rs_id"]').forEach(function(el) { rsData.append('rs_id', el.value); });
+        document.querySelectorAll('#e_existingRoyTiers input[name="rs_lorange"]').forEach(function(el) { rsData.append('rs_lorange', el.value); });
+        document.querySelectorAll('#e_existingRoyTiers input[name="rs_hirange"]').forEach(function(el) { rsData.append('rs_hirange', el.value); });
+        document.querySelectorAll('#e_existingRoyTiers input[name="rs_royalty"]').forEach(function(el) { rsData.append('rs_royalty', el.value); });
+        // New tiers
+        document.querySelectorAll('#e_royTiers input[name="rs_new_lorange"]').forEach(function(el) { rsData.append('rs_new_lorange', el.value); });
+        document.querySelectorAll('#e_royTiers input[name="rs_new_hirange"]').forEach(function(el) { rsData.append('rs_new_hirange', el.value); });
+        document.querySelectorAll('#e_royTiers input[name="rs_new_royalty"]').forEach(function(el) { rsData.append('rs_new_royalty', el.value); });
+
+        fetch('/titles/update/' + encodeURIComponent(_editTitleId), {
+            method: 'POST', body: titleData
+        }).then(function() {
+            return fetch('/titles/' + encodeURIComponent(_editTitleId) + '/royscheds/update', {
+                method: 'POST', body: rsData
+            });
+        }).then(function() {
+            window.location.href = '/titles?success=update';
+        }).catch(function() {
+            btn.classList.remove('loading'); btn.disabled = false;
+            showErrorToast('Failed to save changes. Please try again.');
+        });
+
+        return false;
+    }
+
+    // ── Reset helpers ─────────────────────────────────────────────────────────
+
+    function clearCreateForm() {
+        ['c_title','c_price','c_advance','c_ytdSales','c_notes','c_pubdate'].forEach(function (id) {
+            var el = document.getElementById(id); if (el) { el.value = ''; el.classList.remove('invalid'); }
+        });
+        document.getElementById('c_type').value  = '';
+        document.getElementById('c_pubId').value = '';
+        document.getElementById('c_titleNum').value = '';
+        document.getElementById('c_titleNum').classList.remove('invalid');
+        document.getElementById('c_titleId').value = '';
+        document.getElementById('c_prefixBadge').textContent = '??';
+        document.getElementById('c_titleIdPreview').textContent = '??____';
+        document.getElementById('c_authorSearch').value = '';
+        filterAuthors('c_', '');
+        uncheckAllAuthors('c_');
+        document.getElementById('c_authorChecklist').classList.remove('invalid');
+        document.getElementById('c_royTiers').innerHTML = '';
+        ['err_c_titleId','err_c_title','err_c_type','err_c_pubId','err_c_pubdate','err_c_authors'].forEach(function (id) {
+            var el = document.getElementById(id); if (el) el.classList.remove('show');
+        });
+    }
+
+    function clearEditErrors() {
+        ['e_title','e_pubdate'].forEach(function (id) {
+            var el = document.getElementById(id); if (el) el.classList.remove('invalid');
+        });
+        ['err_e_title','err_e_pubdate'].forEach(function (id) {
+            var el = document.getElementById(id); if (el) el.classList.remove('show');
+        });
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────────────────
+
+    function showToast(msg) {
+        document.getElementById('toastMsg').textContent = msg;
+        new bootstrap.Toast(document.getElementById('successToast'), { delay: 3500 }).show();
+    }
+
+    function showErrorToast(msg) {
+        var toastEl = document.getElementById('successToast');
+        toastEl.classList.remove('text-bg-success');
+        toastEl.classList.add('text-bg-danger');
+        document.getElementById('toastMsg').textContent = msg;
+        new bootstrap.Toast(toastEl, { delay: 4500 }).show();
+        setTimeout(function () {
+            toastEl.classList.remove('text-bg-danger');
+            toastEl.classList.add('text-bg-success');
+        }, 5000);
+    }
+</script>
+</body>
+</html>

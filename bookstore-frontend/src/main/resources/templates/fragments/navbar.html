@@ -22,15 +22,28 @@
                     </a>
                 </li>
                 <li class="nav-item">
+
+                    <a th:href="@{/employees}" class="nav-link" th:classappend="${activePage == 'employees'} ? 'active fw-semibold'">
+                        <i class="bi bi-person-badge me-1"></i>Employees
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a th:href="@{/publishers}" class="nav-link"
                         th:classappend="${activePage == 'publishers'} ? 'active fw-semibold'">
                         <i class="bi bi-building me-1"></i>Publishers
+
                     </a>
                 </li>
                 <li class="nav-item">
                     <a th:href="@{/stores}" class="nav-link"
                         th:classappend="${activePage == 'stores'} ? 'active fw-semibold'">
                         <i class="bi bi-shop me-1"></i>Stores
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a th:href="@{/titles}" class="nav-link"
+                            th:classappend="${activePage == 'titles'} ? 'active fw-semibold'">
+                            <i class="bi bi-book me-1"></i>Titles
                     </a>
                 </li>
             </ul>
