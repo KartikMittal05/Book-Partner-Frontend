@@ -1,155 +1,273 @@
-<!DOCTYPE html>
+<!doctype html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
-<head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title th:text="${pageTitle}">Author Detail</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"/>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
     <style>
-        body { background: #f1f5f9; }
-        .page-hero {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
-            color: white; padding: 36px 0 32px;
-        }
-        .author-avatar {
-            width: 80px; height: 80px; border-radius: 20px;
-            background: #6366f1; color: white;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 28px; font-weight: 700; flex-shrink: 0;
-        }
-        .detail-card { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
-        .field-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
-        .field-row:last-child { border-bottom: none; }
-        .field-label { font-size: 13px; color: #64748b; font-weight: 500; }
-        .field-value { font-size: 14px; font-weight: 600; color: #1e293b; }
-        .table thead th { background: #f8fafc; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: #64748b; }
+      body {
+        background: #f1f5f9;
+      }
+      .page-hero {
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #16213e 60%,
+          #0f3460 100%
+        );
+        color: white;
+        padding: 36px 0 32px;
+      }
+      .author-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        background: #6366f1;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .detail-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+      }
+      .field-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .field-row:last-child {
+        border-bottom: none;
+      }
+      .field-label {
+        font-size: 13px;
+        color: #64748b;
+        font-weight: 500;
+      }
+      .field-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e293b;
+      }
+      .table thead th {
+        background: #f8fafc;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #64748b;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
+    <div
+      th:replace="~{fragments/navbar :: navbar}"
+      th:with="activePage='authors'"
+    ></div>
 
-<div th:replace="~{fragments/navbar :: navbar}" th:with="activePage='authors'"></div>
-
-<div class="page-hero">
-    <div class="container-fluid px-4">
+    <div class="page-hero">
+      <div class="container-fluid px-4">
         <nav aria-label="breadcrumb" class="mb-3">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a th:href="@{/}" class="text-white-50 text-decoration-none">Home</a></li>
-                <li class="breadcrumb-item"><a th:href="@{/authors}" class="text-white-50 text-decoration-none">Authors</a></li>
-                <li class="breadcrumb-item active text-white" th:text="${author.auId}">Detail</li>
-            </ol>
+          <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item">
+              <a th:href="@{/}" class="text-white-50 text-decoration-none"
+                >Home</a
+              >
+            </li>
+            <li class="breadcrumb-item">
+              <a
+                th:href="@{/authors}"
+                class="text-white-50 text-decoration-none"
+                >Authors</a
+              >
+            </li>
+            <li
+              class="breadcrumb-item active text-white"
+              th:text="${author.auId}"
+            >
+              Detail
+            </li>
+          </ol>
         </nav>
         <div class="d-flex align-items-center gap-4 flex-wrap">
-            <div class="author-avatar"
-                 th:text="${#strings.substring(author.auFname,0,1) + #strings.substring(author.auLname,0,1)}"></div>
-            <div>
-                <h1 class="h3 fw-bold mb-1" th:text="${author.getFullName()}">Full Name</h1>
-                <span class="badge bg-light text-dark me-2" th:text="${author.auId}">ID</span>
-                <span class="badge rounded-pill"
-                      th:classappend="${author.contract == 1} ? 'text-bg-success' : 'text-bg-danger'"
-                      th:text="${author.contract == 1} ? '✓ Active Contract' : '✗ No Contract'">
-                </span>
-            </div>
-            <div class="ms-auto">
-                <a th:href="@{/authors}" class="btn btn-outline-light btn-sm">
-                    <i class="bi bi-arrow-left me-1"></i>Back to Authors
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="container-fluid px-4 py-4">
-    <div class="row g-4">
-        <div class="col-md-6">
-            <div class="detail-card p-4 h-100">
-                <h6 class="fw-bold text-muted text-uppercase small mb-3">
-                    <i class="bi bi-person me-1"></i>Personal Information
-                </h6>
-                <div class="field-row">
-                    <span class="field-label">Author ID</span>
-                    <span class="field-value font-monospace" th:text="${author.auId}">—</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">First Name</span>
-                    <span class="field-value" th:text="${author.auFname ?: '—'}">—</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Last Name</span>
-                    <span class="field-value" th:text="${author.auLname ?: '—'}">—</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Phone</span>
-                    <span class="field-value font-monospace" th:text="${author.phone ?: '—'}">—</span>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="detail-card p-4 h-100">
-                <h6 class="fw-bold text-muted text-uppercase small mb-3">
-                    <i class="bi bi-geo-alt me-1"></i>Location &amp; Contract
-                </h6>
-                <div class="field-row">
-                    <span class="field-label">Address</span>
-                    <span class="field-value" th:text="${author.address ?: '—'}">—</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">City</span>
-                    <span class="field-value" th:text="${author.city ?: '—'}">—</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">State</span>
-                    <span class="field-value" th:text="${author.state ?: '—'}">—</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">ZIP</span>
-                    <span class="field-value font-monospace" th:text="${author.zip ?: '—'}">—</span>
-                </div>
-                <div class="field-row">
-                    <span class="field-label">Contract</span>
-                    <span class="field-value" th:text="${author.contract == 1} ? '1 (Active)' : '0 (None)'">—</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Associated Titles -->
-    <div class="detail-card mt-4">
-        <div class="p-4 border-bottom d-flex align-items-center justify-content-between">
-            <h6 class="fw-bold mb-0"><i class="bi bi-book me-2"></i>Associated Titles (TitleAuthor)</h6>
-            <span class="badge bg-primary rounded-pill"
-                  th:text="${titleAuthors != null ? titleAuthors.size() : 0} + ' titles'">
+          <div
+            class="author-avatar"
+            th:text="${#strings.substring(author.auFname,0,1) + #strings.substring(author.auLname,0,1)}"
+          ></div>
+          <div>
+            <h1 class="h3 fw-bold mb-1" th:text="${author.getFullName()}">
+              Full Name
+            </h1>
+            <span class="badge bg-light text-dark me-2" th:text="${author.auId}"
+              >ID</span
+            >
+            <span
+              class="badge rounded-pill"
+              th:classappend="${author.contract == 1} ? 'text-bg-success' : 'text-bg-danger'"
+              th:text="${author.contract == 1} ? '✓ Active Contract' : '✗ No Contract'"
+            >
             </span>
+          </div>
+          <div class="ms-auto">
+            <a th:href="@{/authors}" class="btn btn-outline-light btn-sm">
+              <i class="bi bi-arrow-left me-1"></i>Back to Authors
+            </a>
+          </div>
         </div>
-        <div th:if="${titleAuthors == null or titleAuthors.isEmpty()}" class="p-5 text-center text-muted">
-            <i class="bi bi-book" style="font-size:40px;display:block;margin-bottom:12px"></i>
-            <p class="mb-0">No titles linked to this author</p>
-        </div>
-        <div class="table-responsive" th:if="${titleAuthors != null and !titleAuthors.isEmpty()}">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>Title ID</th>
-                        <th>Author Order</th>
-                        <th>Royalty %</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="ta : ${titleAuthors}">
-                        <td class="font-monospace" th:text="${ta.titleId}">—</td>
-                        <td th:text="${ta.auOrd ?: '—'}">—</td>
-                        <td>
-                            <span class="badge text-bg-success" th:if="${ta.royaltyper != null}" th:text="${ta.royaltyper} + '%'"></span>
-                            <span th:unless="${ta.royaltyper != null}">—</span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+      </div>
     </div>
-</div>
 
-<div th:replace="~{fragments/footer :: footer}"></div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+    <div class="container-fluid px-4 py-4">
+      <div class="row g-4">
+        <div class="col-md-6">
+          <div class="detail-card p-4 h-100">
+            <h6 class="fw-bold text-muted text-uppercase small mb-3">
+              <i class="bi bi-person me-1"></i>Personal Information
+            </h6>
+            <div class="field-row">
+              <span class="field-label">Author ID</span>
+              <span class="field-value font-monospace" th:text="${author.auId}"
+                >—</span
+              >
+            </div>
+            <div class="field-row">
+              <span class="field-label">First Name</span>
+              <span class="field-value" th:text="${author.auFname ?: '—'}"
+                >—</span
+              >
+            </div>
+            <div class="field-row">
+              <span class="field-label">Last Name</span>
+              <span class="field-value" th:text="${author.auLname ?: '—'}"
+                >—</span
+              >
+            </div>
+            <div class="field-row">
+              <span class="field-label">Phone</span>
+              <span
+                class="field-value font-monospace"
+                th:text="${author.phone ?: '—'}"
+                >—</span
+              >
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="detail-card p-4 h-100">
+            <h6 class="fw-bold text-muted text-uppercase small mb-3">
+              <i class="bi bi-geo-alt me-1"></i>Location &amp; Contract
+            </h6>
+            <div class="field-row">
+              <span class="field-label">Address</span>
+              <span class="field-value" th:text="${author.address ?: '—'}"
+                >—</span
+              >
+            </div>
+            <div class="field-row">
+              <span class="field-label">City</span>
+              <span class="field-value" th:text="${author.city ?: '—'}">—</span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">State</span>
+              <span class="field-value" th:text="${author.state ?: '—'}"
+                >—</span
+              >
+            </div>
+            <div class="field-row">
+              <span class="field-label">ZIP</span>
+              <span
+                class="field-value font-monospace"
+                th:text="${author.zip ?: '—'}"
+                >—</span
+              >
+            </div>
+            <div class="field-row">
+              <span class="field-label">Contract</span>
+              <span
+                class="field-value"
+                th:text="${author.contract == 1} ? '1 (Active)' : '0 (None)'"
+                >—</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Associated Titles -->
+      <div class="detail-card mt-4">
+        <div
+          class="p-4 border-bottom d-flex align-items-center justify-content-between"
+        >
+          <h6 class="fw-bold mb-0">
+            <i class="bi bi-book me-2"></i>Associated Titles (TitleAuthor)
+          </h6>
+          <span
+            class="badge bg-primary rounded-pill"
+            th:text="${titleAuthors != null ? titleAuthors.size() : 0} + ' titles'"
+          >
+          </span>
+        </div>
+        <div
+          th:if="${titleAuthors == null or titleAuthors.isEmpty()}"
+          class="p-5 text-center text-muted"
+        >
+          <i
+            class="bi bi-book"
+            style="font-size: 40px; display: block; margin-bottom: 12px"
+          ></i>
+          <p class="mb-0">No titles linked to this author</p>
+        </div>
+        <div
+          class="table-responsive"
+          th:if="${titleAuthors != null and !titleAuthors.isEmpty()}"
+        >
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Title ID</th>
+                <th>Title Name</th>
+                <th>Title Type</th>
+                <th>Author Order</th>
+                <th>Royalty %</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="ta : ${titleAuthors}">
+                <td class="font-monospace" th:text="${ta.titleId}">—</td>
+                <td th:text="${ta.titleName ?: '—'}">—</td>
+                <td th:text="${ta.titleType ?: '—'}">—</td>
+                <td th:text="${ta.auOrd ?: '—'}">—</td>
+                <td>
+                  <span
+                    class="badge text-bg-success"
+                    th:if="${ta.royaltyper != null}"
+                    th:text="${ta.royaltyper} + '%'"
+                  ></span>
+                  <span th:unless="${ta.royaltyper != null}">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div th:replace="~{fragments/footer :: footer}"></div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
 </html>
