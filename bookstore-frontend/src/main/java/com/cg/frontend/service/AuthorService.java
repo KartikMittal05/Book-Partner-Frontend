@@ -143,25 +143,39 @@ public class AuthorService {
     }
 
     public List<TitleAuthorDto> getTitlesByAuthor(String auId) {
-        try {
-            String url = baseUrl + "/titleauthors/search/findByAuId?auId=" + auId;
-            ResponseEntity<JsonNode> response = restTemplate.getForEntity(url, JsonNode.class);
-            JsonNode embedded = response.getBody().path("_embedded").path("titleauthors");
-            List<TitleAuthorDto> list = new ArrayList<>();
-            if (embedded.isArray()) {
-                for (JsonNode node : embedded) {
-                    TitleAuthorDto ta = new TitleAuthorDto();
-                    ta.setAuId(node.path("auId").asText(null));
-                    ta.setTitleId(node.path("titleId").asText(null));
-                    ta.setAuOrd(node.path("auOrd").asInt(0));
-                    ta.setRoyaltyper(node.path("royaltyper").asInt(0));
-                    list.add(ta);
+    try {
+        String url = baseUrl + "/titleauthors/search/findByAuId?auId=" + auId;
+        ResponseEntity<JsonNode> response = restTemplate.getForEntity(url, JsonNode.class);
+
+        JsonNode embedded = response.getBody().path("_embedded").path("titleauthors");
+        List<TitleAuthorDto> list = new ArrayList<>();
+
+        if (embedded.isArray()) {
+            for (JsonNode node : embedded) {
+                TitleAuthorDto ta = new TitleAuthorDto();
+
+                ta.setAuId(node.path("auId").asText(null));
+                ta.setTitleId(node.path("titleId").asText(null));
+                ta.setAuOrd(node.path("auOrd").asInt(0));
+                ta.setRoyaltyper(node.path("royaltyper").asInt(0));
+
+                // 🔥 FIX START
+                JsonNode titleNode = node.path("title");
+
+                if (!titleNode.isMissingNode()) {
+                    ta.setTitleName(titleNode.path("title").asText(null)); // column name
+                    ta.setTitleType(titleNode.path("type").asText(null));
                 }
+                // 🔥 FIX END
+
+                list.add(ta);
             }
-            return list;
-        } catch (Exception e) {
-            System.err.println("[AuthorService] getTitlesByAuthor failed: " + e.getMessage());
-            return new ArrayList<>();
         }
+        return list;
+
+    } catch (Exception e) {
+        System.err.println("[AuthorService] getTitlesByAuthor failed: " + e.getMessage());
+        return new ArrayList<>();
     }
+}
 }
